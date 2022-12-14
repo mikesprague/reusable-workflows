@@ -1,0 +1,12 @@
+name: simple test
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo
+        run: echo "is this thing on?"
+
