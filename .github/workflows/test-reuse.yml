@@ -8,5 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: echo
-        run: echo "is this thing on?"
-
+        run: |
+          echo 'is this thing on?'
+          echo '${{ github.ref }}'
