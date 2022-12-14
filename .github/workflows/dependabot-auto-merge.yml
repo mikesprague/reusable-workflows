@@ -3,12 +3,8 @@ name: 🤖 Dependabot auto-merge
 on:
   workflow_call:
     secrets:
-      token:
+      TOKEN:
         required: true
-
-permissions:
-  contents: write
-  pull-requests: write
 
 jobs:
   dependabot:
