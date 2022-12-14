@@ -1,7 +1,14 @@
 name: simple test
 
 on:
+  workflow_dispatch:
+
   workflow_call:
+    inputs:
+      gh-ref:
+        type: string
+        required: false
+        default: ${{ github.ref }}
 
 jobs:
   test:
@@ -10,4 +17,5 @@ jobs:
       - name: echo
         run: |
           echo 'is this thing on?'
-          echo '${{ github.ref }}'
+          echo 'ref: ${{ inputs.gh-ref }}'
+
