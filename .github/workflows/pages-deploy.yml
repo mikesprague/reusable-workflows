@@ -1,0 +1,44 @@
+name: 🚀 Deploy to GitHub Pages
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+      file-name:
+        required: false
+        type: string
+        default: ''
+    secrets:
+      REPO_TOKEN:
+        required: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}${{ inputs.file-name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.artifact-name }}
+
+      - name: 🏗️ Setup GitHub Pages
+        uses: actions/configure-pages@v2
+        with:
+          token: ${{ secrets.REPO_TOKEN }}
+
+      - name: 📦 Create and upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./
+          retention-days: 1
+
+      - name: 🚀 Deploy GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@main
+        with:
+          token: ${{ secrets.REPO_TOKEN }}
