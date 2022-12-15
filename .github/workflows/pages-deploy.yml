@@ -9,7 +9,7 @@ on:
       file-name:
         required: false
         type: string
-        default: ''
+        default: ""
     secrets:
       REPO_TOKEN:
         required: true
@@ -20,6 +20,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}${{ inputs.file-name }}
     runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deployment.outputs.page_url }}${{ inputs.file-name }}
     steps:
       - name: 📦 Download build artifact
         uses: actions/download-artifact@v3
