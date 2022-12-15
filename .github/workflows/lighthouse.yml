@@ -1,0 +1,35 @@
+name: 🗼 Lighthouse Report
+
+on:
+  workflow_call:
+    inputs:
+      url:
+        required: true
+        type: string
+      env-name:
+        required: false
+        type: string
+        default: "lighthouse-report"
+    secrets:
+      REPO_TOKEN:
+        required: true
+
+jobs:
+  lighthouse:
+    environment:
+      name: lighthouse-report
+      url: ${{ steps.report.outputs.url }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{needs.call-deploy-workflow.outputs.url}}
+      - uses: actions/checkout@v3
+      - name: Audit URLs using Lighthouse
+        id: lhci
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          urls: ${{ inputs.url }}
+          uploadArtifacts: false
+          temporaryPublicStorage: true
+      - name: Get Lighthouse Report URL
+        id: report
+        run: echo url=$(echo '${{ steps.lhci.outputs.links }}' | jq -r 'first(.[])') >> $GITHUB_OUTPUT
