@@ -14,6 +14,10 @@ on:
         required: false
         type: string
         default: ""
+      environment-name:
+        required: false
+        type: string
+        default: "github-pages"
     secrets:
       REPO_TOKEN:
         required: true
@@ -21,7 +25,7 @@ on:
 jobs:
   deploy:
     environment:
-      name: github-pages
+      name: ${{ inputs.environment-name }}
       url: ${{ steps.deployment.outputs.page_url }}${{ inputs.file-name }}
     runs-on: ubuntu-latest
     outputs:
