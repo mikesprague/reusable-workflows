@@ -2,6 +2,17 @@ name: 🤖 Dependabot auto-merge
 
 on:
   workflow_call:
+    inputs:  
+      merge-strategy:
+        required: false
+        type: string
+        description: 'defaults to --squash, alternative settings are "--rebase" to rebase or "" for standard merge commit'
+        default: "--squash"
+      auto:
+        required: false
+        type: string
+        description: 'use "--auto" to merge only after necessary requirements are met, default is to always merge'
+        default: ""
     secrets:
       TOKEN:
         required: true
@@ -23,7 +34,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
       - name: 🔀 Auto-merge Dependabot PRs if patch release
         if: ${{steps.metadata.outputs.update-type == 'version-update:semver-patch'}}
-        run: gh pr merge --auto --rebase "$PR_URL"
+        run: gh pr merge "$PR_URL" "${{ inputs.auto }}" "${{ inputs.merge-strategy }}"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
