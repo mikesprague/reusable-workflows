@@ -11,8 +11,8 @@ on:
       auto:
         required: false
         type: string
-        description: 'use "--auto" to merge only after necessary requirements are met, default is to always merge'
-        default: ""
+        description: 'use "" to always merge, default is to to merge only after necessary requirements are met'
+        default: "--auto"
     secrets:
       TOKEN:
         required: true
