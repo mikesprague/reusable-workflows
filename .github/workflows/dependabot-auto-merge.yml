@@ -14,7 +14,7 @@ on:
         description: 'use "" to always merge, default is to to merge only after necessary requirements are met'
         default: "--auto"
     secrets:
-      TOKEN:
+      REPO_TOKEN:
         required: true
 
 jobs:
@@ -25,16 +25,16 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@v1
         with:
-          github-token: "${{ secrets.TOKEN }}"
+          github-token: "${{ secrets.REPO_TOKEN }}"
       - name: 🔀 Auto-merge Dependabot PRs if dev dependency and minor release
         if: ${{steps.metadata.outputs.dependency-type == 'direct:development' && steps.metadata.outputs.update-type == 'version-update:semver-minor'}}
-        run: gh pr merge --auto --rebase "$PR_URL"
+        run: gh pr merge "$PR_URL" "${{ inputs.auto }}" "${{ inputs.merge-strategy }}"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
       - name: 🔀 Auto-merge Dependabot PRs if patch release
         if: ${{steps.metadata.outputs.update-type == 'version-update:semver-patch'}}
         run: gh pr merge "$PR_URL" "${{ inputs.auto }}" "${{ inputs.merge-strategy }}"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
