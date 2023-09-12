@@ -37,4 +37,4 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: 🚀 Deploy
-        run: flyctl deploy --build-target ${{ inputs.build-target }} --remote-only --strategy ${{ inputs.strategy }} --region ${{ inputs.region }}
+        run: flyctl deploy --build-target ${{ inputs.build-target }} --no-cache --remote-only --strategy ${{ inputs.strategy }} --region ${{ inputs.region }}
