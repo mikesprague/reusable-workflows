@@ -49,6 +49,6 @@ jobs:
 
       - name: 🚀 Deploy GitHub Pages artifact
         id: deployment
-        uses: actions/deploy-pages@main
+        uses: actions/deploy-pages@v2
         with:
           token: ${{ secrets.REPO_TOKEN }}
