@@ -25,6 +25,8 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@v2
         with:
+          alert-lookup: true
+          compat-lookup: true
           github-token: "${{ secrets.REPO_TOKEN }}"
       - name: 🔀 Auto-merge Dependabot PRs if dev dependency and minor release
         if: ${{steps.metadata.outputs.dependency-type == 'direct:development' && steps.metadata.outputs.update-type == 'version-update:semver-minor'}}
