@@ -45,7 +45,7 @@ jobs:
           token: ${{ secrets.REPO_TOKEN }}
 
       - name: 📦 Create and upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./
           name: 'pages-${{ inputs.artifact-name }}'
