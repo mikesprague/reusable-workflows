@@ -1,0 +1,215 @@
+name: Create Conventional Commit Release
+
+on:
+  workflow_call:
+    inputs:
+      prerelease:
+        type: boolean
+        required: false
+        default: false
+      draft:
+        type: boolean
+        required: false
+        default: false
+      release-notes-heading:
+        type: string
+        required: false
+        default: "What's Changed"
+      changelog-preset:
+        type: string
+        required: false
+        default: conventionalcommits
+      changelog-config-path:
+        type: string
+        required: false
+        default: changelog.config.mjs
+    secrets:
+      REPO_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CHANGELOG_FALLBACK_CONFIG: |
+    // Changelog section mapping by Conventional Commit type.
+    // - Rename a heading: change `section`.
+    // - Hide a heading: set `hidden: true` for that type.
+    // - Show a heading: set `hidden: false` (or remove `hidden`).
+    // - Add support for a new type: add a new object to this array.
+
+    const types = [
+      { type: 'feat', section: '✨ Features', hidden: false },
+      { type: 'fix', section: '🐛 Fixes', hidden: false },
+      { type: 'perf', section: '⚡ Performance Improvements', hidden: false },
+      { type: 'revert', section: '⏪ Reverts', hidden: false },
+      { type: 'docs', section: '📚 Documentation', hidden: false },
+      { type: 'chore', section: '🔧 Chores', hidden: false },
+      { type: 'refactor', section: '🛠️ Code Refactoring', hidden: false },
+      { type: 'build', section: '🏗️ Build System', hidden: false },
+      { type: 'ci', section: '🔄 Continuous Integration', hidden: false },
+      { type: 'test', section: '🧪 Tests', hidden: false },
+    ];
+
+    const typeMap = new Map(types.map((entry) => [entry.type, entry]));
+
+    export default {
+      writer: {
+        transform(commit) {
+          const commitType = (
+            commit.revert ? 'revert' : commit.type || ''
+          ).toLowerCase();
+          const entry = typeMap.get(commitType);
+
+          if (entry?.hidden) {
+            return undefined;
+          }
+
+          const sectionTitle = entry?.section || commit.type;
+
+          if (!sectionTitle) {
+            return undefined;
+          }
+
+          return {
+            type: sectionTitle,
+            scope: commit.scope === '*' ? '' : commit.scope,
+            subject: commit.subject,
+            shortHash:
+              typeof commit.hash === 'string'
+                ? commit.hash.substring(0, 7)
+                : commit.shortHash,
+            references: commit.references || [],
+            notes: (commit.notes || []).map((note) => ({
+              ...note,
+              title: 'BREAKING CHANGES',
+            })),
+          };
+        },
+        groupBy: 'type',
+        commitsSort: ['scope', 'subject'],
+        noteGroupsSort: 'title',
+      },
+    };
+  NODE_VERSION: ${{ vars.NODE_VERSION  || '24.x' }}
+
+jobs:
+  create-github-release:
+    runs-on: ubuntu-latest
+    steps:
+      # checkout repo with full history to ensure all tags are available for changelog generation
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # setup Node.js environment with npm caching for node modules to speed up changelog generation
+      - name: Setup Node.js ${{ env.NODE_VERSION }} environment
+        uses: actions/setup-node@v6
+        with:
+          cache: "npm"
+          check-latest: true
+          node-version: ${{ env.NODE_VERSION }}
+
+      # additional caching layer for node_modules to speed up subsequent runs
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        id: cache
+        with:
+          path: ./node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+
+      # install conventional changelog dependencies if not cached
+      - name: Install conventional changelog dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm install conventional-changelog conventional-changelog-cli conventional-changelog-conventionalcommits
+
+      # generate and output data for release creation and changelog generation steps
+      - name: Prepare release data
+        id: prep_release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          new_tag="${GITHUB_REF_NAME}"
+
+          if ! [[ "$new_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag '$new_tag' is not strict semver (vX.Y.Z)."
+            exit 1
+          fi
+
+          echo "new_tag: $new_tag"
+
+          last_tag="$(
+            git tag --sort=-version:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed -n "/^${new_tag//./\\.}$/d; p; q"
+          )"
+
+          echo "last_tag: $last_tag"
+
+          if [[ -n "$last_tag" ]]; then
+            full_changelog_url="https://github.com/${{ github.repository }}/compare/${last_tag}...${new_tag}"
+          else
+            full_changelog_url="https://github.com/${{ github.repository }}/releases/tag/${new_tag}"
+          fi
+
+          echo "full_changelog_url: $full_changelog_url"
+
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "last_tag=$last_tag" >> "$GITHUB_OUTPUT"
+          echo "full_changelog_url=$full_changelog_url" >> "$GITHUB_OUTPUT"
+
+      # generate release notes content using conventional changelog cli and create GitHub release via GH CLI
+      - name: Generate Release via CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          changelog_config_path="${{ inputs.changelog-config-path }}"
+
+          echo "changelog_config_path: $changelog_config_path"
+
+          if [[ ! -f "$changelog_config_path" ]]; then
+            changelog_config_path="$RUNNER_TEMP/changelog.config.mjs"
+            printf '%s\n' "${{ env.CHANGELOG_FALLBACK_CONFIG }}" > "$changelog_config_path"
+          fi
+
+          echo "FALLBACK changelog_config_path: $changelog_config_path"
+
+          changelog_content="$(npx -y conventional-changelog \
+            -p ${{ inputs.changelog-preset }} \
+            -n $changelog_config_path \
+            --stdout -u -r 1 -i /dev/null \
+            | sed -n '/^### /,$p')"
+          echo "changelog_content: $changelog_content"
+
+          if [[ -z "$changelog_content" ]]; then
+            changelog_content="$(npx -y conventional-changelog \
+              -p ${{ inputs.changelog-preset }} \
+              -n $changelog_config_path \
+              --stdout -u -r 2 -i /dev/null \
+              | sed -n '/^### /,$p')"
+          fi
+          echo "FALLBACK changelog_content: $changelog_content"
+
+          if [[ -z "$changelog_content" ]]; then
+              echo "No changelog content generated. Exiting."
+              exit 1
+          fi
+
+          args=(release create "${{ steps.prep_release.outputs.new_tag }}" -t "${{ steps.prep_release.outputs.new_tag }}")
+          ${{ inputs.draft }} && args+=(--draft)
+          ${{ inputs.prerelease }} && args+=(--prerelease)
+
+          {
+            echo "## ${{ inputs.release-notes-heading }}"
+            echo
+            echo "$changelog_content"
+            echo
+            echo "**Full Changelog:** ${{ steps.prep_release.outputs.full_changelog_url }}"
+          } | gh "${args[@]}" -F -
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
