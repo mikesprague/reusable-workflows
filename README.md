@@ -87,10 +87,93 @@ jobs:
       artifact-name: build-artifact
 ```
 
+### Create Conventional Commit Release
+
+Creates a GitHub release for a strict semver tag (`vX.Y.Z`) using Conventional Commits.
+
+Supports optional prerelease/draft releases and a custom changelog config path.
+
+Example usage:
+
+```yaml
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  call-release-workflow:
+    uses: mikesprague/reusable-workflows/.github/workflows/create-release.yml@main
+    secrets:
+      REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      prerelease: false
+      draft: false
+      release-notes-heading: "What's Changed"
+      changelog-preset: conventionalcommits
+      changelog-config-path: changelog.config.mjs
+```
+
 ### Deploy to Fly.io
 
-... documentation in progress ...
+Deploys your app to Fly.io using `flyctl deploy`.
+
+Supports optional region/strategy/build target/build path overrides.
+
+Example usage:
+
+```yaml
+name: 🚀 Deploy to Fly.io
+
+on:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+jobs:
+  call-flyio-deploy-workflow:
+    uses: mikesprague/reusable-workflows/.github/workflows/flyio-deploy.yml@main
+    secrets:
+      REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    with:
+      region: ewr
+      strategy: immediate
+      build-target: production
+      build-path: ./
+```
 
 ### Run Lighthouse Report
 
-... documentation in progress ...
+Runs a Lighthouse audit against a URL and publishes the report URL on the job environment.
+
+Requires a target URL and supports an optional environment name.
+
+Example usage:
+
+```yaml
+name: 🗼 Lighthouse Report
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  call-lighthouse-workflow:
+    uses: mikesprague/reusable-workflows/.github/workflows/lighthouse.yml@main
+    secrets:
+      REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      url: https://example.com
+      environment-name: lighthouse-report
+```
