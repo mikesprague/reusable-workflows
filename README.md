@@ -91,7 +91,10 @@ jobs:
 
 Creates a GitHub release for a strict semver tag (`vX.Y.Z`) using Conventional Commits.
 
-Supports optional prerelease/draft releases and a custom changelog config path.
+Requires a repository input in `owner/repo` format.
+
+Supports optional prerelease/draft releases, custom release heading text,
+changelog preset, and changelog config path.
 
 Example usage:
 
@@ -112,6 +115,7 @@ jobs:
     secrets:
       REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     with:
+      repository: ${{ github.repository }}
       prerelease: false
       draft: false
       release-notes-heading: "What's Changed"
