@@ -215,9 +215,11 @@ jobs:
 
           echo "full_changelog_url: $full_changelog_url"
 
-          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
-          echo "last_tag=$last_tag" >> "$GITHUB_OUTPUT"
-          echo "full_changelog_url=$full_changelog_url" >> "$GITHUB_OUTPUT"
+          {
+            echo "new_tag=$new_tag"
+            echo "last_tag=$last_tag"
+            echo "full_changelog_url=$full_changelog_url"
+          } >> "$GITHUB_OUTPUT"
 
       # generate release notes content using conventional changelog cli and create GitHub release via GH CLI
       - name: Generate Release via CLI
@@ -237,16 +239,16 @@ jobs:
           echo "FALLBACK changelog_config_path: $changelog_config_path"
 
           changelog_content="$(npx -y conventional-changelog \
-            -p ${{ inputs.changelog-preset }} \
-            -n $changelog_config_path \
+            -p "${{ inputs.changelog-preset }}" \
+            -n "$changelog_config_path" \
             --stdout -u -r 1 -i /dev/null \
             | sed -n '/^### /,$p')"
           echo "changelog_content: $changelog_content"
 
           if [[ -z "$changelog_content" ]]; then
             changelog_content="$(npx -y conventional-changelog \
-              -p ${{ inputs.changelog-preset }} \
-              -n $changelog_config_path \
+              -p "${{ inputs.changelog-preset }}" \
+              -n "$changelog_config_path" \
               --stdout -u -r 2 -i /dev/null \
               | sed -n '/^### /,$p')"
           fi
