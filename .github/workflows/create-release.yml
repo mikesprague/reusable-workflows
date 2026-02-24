@@ -3,6 +3,9 @@ name: Create Conventional Commit Release
 on:
   workflow_call:
     inputs:
+      repository: # owner/repo format (e.g. mikesprague/reusable-workflows)
+        type: string
+        required: true
       prerelease:
         type: boolean
         required: false
@@ -14,7 +17,7 @@ on:
       release-notes-heading:
         type: string
         required: false
-        default: "What's Changed"
+        default: What's Changed
       changelog-preset:
         type: string
         required: false
@@ -32,22 +35,73 @@ permissions:
 
 env:
   CHANGELOG_FALLBACK_CONFIG: |
+    import { readFileSync } from 'node:fs';
+    import { dirname, join } from 'node:path';
+    import { fileURLToPath } from 'node:url';
+
     // Changelog section mapping by Conventional Commit type.
     // - Rename a heading: change `section`.
     // - Hide a heading: set `hidden: true` for that type.
     // - Show a heading: set `hidden: false` (or remove `hidden`).
     // - Add support for a new type: add a new object to this array.
 
+    // read in this file: node_modules/conventional-changelog-conventionalcommits/src/templates/template.hbs
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const __filename =
+      'node_modules/conventional-changelog-conventionalcommits/src/templates/template.hbs';
+    let headerTemplate = '';
+    try {
+      headerTemplate = readFileSync(join(__dirname, __filename), 'utf-8');
+    } catch (error) {
+      console.error(
+        `Error reading template file at ${join(__dirname, __filename)}:`,
+        error
+      );
+    }
+
+    const defaultTemplate = `{{> header}}
+    {{#if noteGroups}}
+    {{#each noteGroups}}
+
+    ### ⚠ {{title}}
+
+    {{#each notes}}
+    * {{#if commit.scope}}**{{commit.scope}}:** {{/if}}{{text}}
+    {{/each}}
+    {{/each}}
+    {{/if}}
+    {{#each commitGroups}}
+
+    {{#if title}}
+    ### {{title}}
+
+    {{/if}}
+    {{#each commits}}
+    {{> commit root=@root}}
+    {{/each}}
+    {{/each}}
+
+    `;
+
+    const mainTemplate =
+      headerTemplate.length > 0 && headerTemplate.includes('{{#each commits}}')
+        ? `${headerTemplate}
+
+    `
+        : defaultTemplate;
+
     const types = [
+      { type: 'build', section: '🏗️ Build System', hidden: false },
+      { type: 'chore', section: '🔧 Chores', hidden: false },
+      { type: 'ci', section: '🔄 Continuous Integration', hidden: false },
+      { type: 'docs', section: '📚 Documentation', hidden: false },
       { type: 'feat', section: '✨ Features', hidden: false },
       { type: 'fix', section: '🐛 Fixes', hidden: false },
+      { type: 'init', section: '🪄 Init', hidden: false },
       { type: 'perf', section: '⚡ Performance Improvements', hidden: false },
-      { type: 'revert', section: '⏪ Reverts', hidden: false },
-      { type: 'docs', section: '📚 Documentation', hidden: false },
-      { type: 'chore', section: '🔧 Chores', hidden: false },
       { type: 'refactor', section: '🛠️ Code Refactoring', hidden: false },
-      { type: 'build', section: '🏗️ Build System', hidden: false },
-      { type: 'ci', section: '🔄 Continuous Integration', hidden: false },
+      { type: 'revert', section: '⏪ Reverts', hidden: false },
+      { type: 'style', section: '🎨 Style', hidden: false },
       { type: 'test', section: '🧪 Tests', hidden: false },
     ];
 
@@ -55,6 +109,7 @@ env:
 
     export default {
       writer: {
+        mainTemplate,
         transform(commit) {
           const commitType = (
             commit.revert ? 'revert' : commit.type || ''
@@ -102,6 +157,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          repository: ${{ inputs.repository }}
+          token: ${{ secrets.REPO_TOKEN }}
 
       # setup Node.js environment with npm caching for node modules to speed up changelog generation
       - name: Setup Node.js ${{ env.NODE_VERSION }} environment
@@ -151,9 +208,9 @@ jobs:
           echo "last_tag: $last_tag"
 
           if [[ -n "$last_tag" ]]; then
-            full_changelog_url="https://github.com/${{ github.repository }}/compare/${last_tag}...${new_tag}"
+            full_changelog_url="https://github.com/${{ inputs.repository }}/compare/${last_tag}...${new_tag}"
           else
-            full_changelog_url="https://github.com/${{ github.repository }}/releases/tag/${new_tag}"
+            full_changelog_url="https://github.com/${{ inputs.repository }}/releases/tag/${new_tag}"
           fi
 
           echo "full_changelog_url: $full_changelog_url"
