@@ -35,7 +35,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}${{ inputs.file-name }}
     steps:
       - name: 📦 Download build artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact-name }}
 
