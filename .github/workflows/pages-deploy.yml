@@ -40,7 +40,7 @@ jobs:
           name: ${{ inputs.artifact-name }}
 
       - name: 🏗️ Setup GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           token: ${{ secrets.REPO_TOKEN }}
 
