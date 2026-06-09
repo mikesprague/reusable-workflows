@@ -35,25 +35,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}${{ inputs.file-name }}
     steps:
       - name: 📦 Download build artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ inputs.artifact-name }}
 
       - name: 🏗️ Setup GitHub Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         with:
           token: ${{ secrets.REPO_TOKEN }}
 
       - name: 📦 Create and upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ./
-          name: 'pages-${{ inputs.artifact-name }}'
+          name: "pages-${{ inputs.artifact-name }}"
           retention-days: 1
 
       - name: 🚀 Deploy GitHub Pages artifact
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
         with:
           token: ${{ secrets.REPO_TOKEN }}
-          artifact_name: 'pages-${{ inputs.artifact-name }}'
+          artifact_name: "pages-${{ inputs.artifact-name }}"
